@@ -11,6 +11,7 @@ const suitMeta = {
 const state = {
   handTiles: [],
   openMelds: [],
+  dingque: "",
   history: [],
 };
 
@@ -39,6 +40,7 @@ function cloneState() {
       type: meld.type,
       tiles: [...meld.tiles],
     })),
+    dingque: state.dingque,
   };
 }
 
@@ -52,6 +54,7 @@ function restoreState(snapshot) {
     type: meld.type,
     tiles: [...meld.tiles],
   }));
+  state.dingque = snapshot.dingque || "";
 }
 
 function tileLabel(tile) {
@@ -85,12 +88,41 @@ function createCounts(handTiles, openMelds) {
   return counts;
 }
 
+function getOpenMeldTileCount(openMelds) {
+  return openMelds.reduce((sum, meld) => sum + meld.tiles.length, 0);
+}
+
+function getTotalTileCount(handTiles, openMelds) {
+  return handTiles.length + getOpenMeldTileCount(openMelds);
+}
+
+function getSuitTileCount(suit) {
+  if (!suit) return 0;
+  const counts = createCounts(state.handTiles, state.openMelds);
+  let total = 0;
+  for (let tile = TILE_MIN; tile <= TILE_MAX; tile += 1) {
+    if (tile % 10 === 0) continue;
+    if (getSuit(tile) === suit) {
+      total += counts[tile];
+    }
+  }
+  return total;
+}
+
+function renderDingque() {
+  document.querySelectorAll(".dingque-buttons .btn").forEach((btn) => {
+    const selected = btn.dataset.dingque === state.dingque;
+    btn.classList.toggle("active", selected);
+  });
+}
+
 function updateHandButtons() {
   const counts = createCounts(state.handTiles, state.openMelds);
   document.querySelectorAll(".tile-buttons button").forEach((btn) => {
     const tile = Number(btn.dataset.tile);
     const disabled =
-      state.handTiles.length >= MAX_HAND || counts[tile] >= 4;
+      getTotalTileCount(state.handTiles, state.openMelds) >= MAX_HAND ||
+      counts[tile] >= 4;
     btn.disabled = disabled;
   });
 }
@@ -116,7 +148,7 @@ function renderOpenMelds() {
   if (state.openMelds.length === 0) {
     const empty = document.createElement("p");
     empty.className = "status";
-    empty.textContent = "暂无副露";
+    empty.textContent = "暂无杠/碰";
     elements.openMelds.appendChild(empty);
     return;
   }
@@ -155,10 +187,8 @@ function meldTypeLabel(type) {
       return "碰";
     case "kong":
       return "杠";
-    case "chi":
-      return "吃";
     default:
-      return "副露";
+      return "面子";
   }
 }
 
@@ -171,31 +201,42 @@ function renderStatus() {
     return;
   }
   if (state.openMelds.length > 4) {
-    elements.handStatus.textContent = "非法状态：副露面子超过 4 个";
+    elements.handStatus.textContent = "非法状态：面子超过 4 个";
     elements.handStatus.classList.add("status-error");
     return;
   }
 
   elements.handStatus.classList.remove("status-error");
-  if (state.handTiles.length < MAX_HAND) {
-    const remaining = MAX_HAND - state.handTiles.length;
+  const totalTiles = getTotalTileCount(state.handTiles, state.openMelds);
+  if (!state.dingque) {
+    elements.handStatus.textContent = "请选择定缺";
+    return;
+  }
+  if (getSuitTileCount(state.dingque) > 0) {
+    elements.handStatus.textContent = "定缺花色不能出现在手牌或杠/碰里";
+    elements.handStatus.classList.add("status-error");
+    return;
+  }
+  if (totalTiles < MAX_HAND) {
+    const remaining = MAX_HAND - totalTiles;
     elements.handStatus.textContent = `还差 ${remaining} 张`;
     return;
   }
 
-  if (state.handTiles.length === MAX_HAND) {
+  if (totalTiles === MAX_HAND) {
     elements.handStatus.textContent = "已满 13 张，正在计算听牌...";
     return;
   }
 
-  elements.handStatus.textContent = "手牌数量超过 13 张";
+  elements.handStatus.textContent = "总牌数超过 13 张";
   elements.handStatus.classList.add("status-error");
 }
 
 function renderResults() {
   elements.results.innerHTML = "";
-  if (state.handTiles.length !== MAX_HAND) {
-    elements.results.textContent = "手牌达到 13 张后显示听牌结果。";
+  const totalTiles = getTotalTileCount(state.handTiles, state.openMelds);
+  if (totalTiles !== MAX_HAND) {
+    elements.results.textContent = "总牌数达到 13 张后显示听牌结果。";
     return;
   }
 
@@ -205,8 +246,18 @@ function renderResults() {
     return;
   }
 
+  if (!state.dingque) {
+    elements.results.textContent = "请选择定缺后再计算听牌。";
+    return;
+  }
+
+  if (getSuitTileCount(state.dingque) > 0) {
+    elements.results.textContent = "定缺花色不能出现在手牌或杠/碰里。";
+    return;
+  }
+
   if (state.openMelds.length > 4) {
-    elements.results.textContent = "副露面子超过 4 个，无法计算听牌。";
+    elements.results.textContent = "面子超过 4 个，无法计算听牌。";
     return;
   }
 
@@ -238,7 +289,7 @@ function renderResults() {
         list.appendChild(item);
       } else {
         const openItem = document.createElement("li");
-        openItem.textContent = `副露：${formatMelds(state.openMelds) || "无"}`;
+        openItem.textContent = `杠/碰：${formatMelds(state.openMelds) || "无"}`;
         list.appendChild(openItem);
 
         detail.melds.forEach((meld) => {
@@ -271,6 +322,7 @@ function calculateWaitingTiles(handTiles, openMelds) {
 
   for (let tile = TILE_MIN; tile <= TILE_MAX; tile += 1) {
     if (tile % 10 === 0) continue;
+    if (state.dingque && getSuit(tile) === state.dingque) continue;
     if (baseCounts[tile] >= 4) continue;
 
     const counts = createCounts(handTiles, []);
@@ -286,11 +338,26 @@ function calculateWaitingTiles(handTiles, openMelds) {
 }
 
 function checkWin14(counts, openMelds) {
+  if (!isMissingSuit(counts, openMelds)) {
+    return [];
+  }
   if (openMelds.length === 0 && checkSevenPairs(counts)) {
     return [{ type: "sevenPairs" }];
   }
 
   return findNormalWins(counts, openMelds, 3);
+}
+
+function isMissingSuit(counts, openMelds) {
+  const suitSet = new Set();
+  for (let tile = TILE_MIN; tile <= TILE_MAX; tile += 1) {
+    if (tile % 10 === 0) continue;
+    if (counts[tile] > 0) suitSet.add(getSuit(tile));
+  }
+  openMelds.forEach((meld) => {
+    meld.tiles.forEach((tile) => suitSet.add(getSuit(tile)));
+  });
+  return suitSet.size <= 2;
 }
 
 function checkSevenPairs(counts) {
@@ -349,7 +416,7 @@ function searchMelds(counts, remaining, currentMelds, results, limit) {
     counts[nextTile] += 3;
   }
 
-  // Try chi
+  // Try chi (hand melds only)
   if (canSequence(nextTile, counts)) {
     counts[nextTile] -= 1;
     counts[nextTile + 1] -= 1;
@@ -389,6 +456,7 @@ function canSequence(tile, counts) {
 function renderAll() {
   renderHand();
   renderOpenMelds();
+  renderDingque();
   renderStatus();
   renderResults();
   updateHandButtons();
@@ -404,7 +472,7 @@ function initTileButtons() {
       btn.textContent = `${num}${suitMeta[suit].label}`;
       btn.dataset.tile = tile;
       btn.addEventListener("click", () => {
-        if (state.handTiles.length >= MAX_HAND) return;
+        if (getTotalTileCount(state.handTiles, state.openMelds) >= MAX_HAND) return;
         const counts = createCounts(state.handTiles, state.openMelds);
         if (counts[tile] >= 4) return;
         pushHistory();
@@ -428,7 +496,7 @@ function updateMeldStartOptions() {
   const offset = suitMeta[suit].offset;
   elements.meldStart.innerHTML = "";
 
-  const maxStart = type === "chi" ? 7 : 9;
+  const maxStart = 9;
   for (let num = 1; num <= maxStart; num += 1) {
     const option = document.createElement("option");
     option.value = offset + num;
@@ -440,15 +508,18 @@ function updateMeldStartOptions() {
 function buildMeldTiles(type, startTile) {
   if (type === "pong") return [startTile, startTile, startTile];
   if (type === "kong") return [startTile, startTile, startTile, startTile];
-  if (type === "chi") return [startTile, startTile + 1, startTile + 2];
   return [];
 }
 
 function validateMeldTiles(tiles) {
   const counts = createCounts(state.handTiles, state.openMelds);
+  const totalTiles = getTotalTileCount(state.handTiles, state.openMelds);
+  if (totalTiles + tiles.length > MAX_HAND) {
+    return "总牌数不能超过 13 张";
+  }
   for (const tile of tiles) {
     if (tile < TILE_MIN || tile > TILE_MAX || tile % 10 === 0) {
-      return "副露牌面非法";
+      return "面子牌面非法";
     }
     if (counts[tile] + 1 > 4) {
       return "任一牌总数不能超过 4 张";
@@ -483,6 +554,7 @@ function handleClear() {
   pushHistory();
   state.handTiles = [];
   state.openMelds = [];
+  state.dingque = "";
   renderAll();
 }
 
@@ -503,10 +575,18 @@ function handleExample() {
     14, 14,
   ];
   state.openMelds = [];
+  state.dingque = "tiao";
   renderAll();
 }
 
 function bindEvents() {
+  document.querySelectorAll(".dingque-buttons .btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      pushHistory();
+      state.dingque = btn.dataset.dingque;
+      renderAll();
+    });
+  });
   elements.btnClear.addEventListener("click", handleClear);
   elements.btnUndo.addEventListener("click", handleUndo);
   elements.btnExample.addEventListener("click", handleExample);

@@ -144,6 +144,29 @@ body {
   margin-top: 12px;
 }
 
+.dingque {
+  margin-top: 12px;
+  display: grid;
+  gap: 8px;
+}
+
+.dingque h3 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.dingque-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.dingque-buttons .btn.active {
+  background: var(--primary);
+  color: #fff;
+  border-color: transparent;
+}
+
 .input-group h3 {
   margin: 8px 0;
   font-size: 15px;
