@@ -114,6 +114,21 @@ function renderDingque() {
     const selected = btn.dataset.dingque === state.dingque;
     btn.classList.toggle("active", selected);
   });
+  updateMeldSuitOptions();
+}
+
+function updateMeldSuitOptions() {
+  const options = Array.from(elements.meldSuit.options);
+  options.forEach((option) => {
+    option.disabled = state.dingque && option.value === state.dingque;
+  });
+  if (elements.meldSuit.selectedOptions[0]?.disabled) {
+    const nextOption = options.find((option) => !option.disabled);
+    if (nextOption) {
+      elements.meldSuit.value = nextOption.value;
+    }
+  }
+  updateMeldStartOptions();
 }
 
 function updateHandButtons() {
@@ -121,6 +136,7 @@ function updateHandButtons() {
   document.querySelectorAll(".tile-buttons button").forEach((btn) => {
     const tile = Number(btn.dataset.tile);
     const disabled =
+      (state.dingque && getSuit(tile) === state.dingque) ||
       getTotalTileCount(state.handTiles, state.openMelds) >= MAX_HAND ||
       counts[tile] >= 4;
     btn.disabled = disabled;
@@ -487,7 +503,7 @@ function initTileButtons() {
 function initMeldForm() {
   elements.meldType.addEventListener("change", updateMeldStartOptions);
   elements.meldSuit.addEventListener("change", updateMeldStartOptions);
-  updateMeldStartOptions();
+  updateMeldSuitOptions();
 }
 
 function updateMeldStartOptions() {
