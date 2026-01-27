@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>成都麻将听牌提示</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="app-header">
+    <h1>成都麻将听牌提示</h1>
+    <p>输入 13 张手牌与副露，自动计算当前听哪些牌。</p>
+  </header>
+
+  <main class="app">
+    <section class="panel">
+      <div class="panel-header">
+        <h2>手牌</h2>
+        <div class="panel-actions">
+          <button id="btn-clear" class="btn btn-outline">清空</button>
+          <button id="btn-undo" class="btn btn-outline">撤销一步</button>
+          <button id="btn-example" class="btn btn-primary">载入示例</button>
+        </div>
+      </div>
+      <div id="hand-tiles" class="tiles-row"></div>
+      <div class="input-area">
+        <div class="input-group">
+          <h3>万</h3>
+          <div class="tile-buttons" data-suit="wan"></div>
+        </div>
+        <div class="input-group">
+          <h3>筒</h3>
+          <div class="tile-buttons" data-suit="tong"></div>
+        </div>
+        <div class="input-group">
+          <h3>条</h3>
+          <div class="tile-buttons" data-suit="tiao"></div>
+        </div>
+      </div>
+      <p id="hand-status" class="status"></p>
+    </section>
+
+    <section class="panel">
+      <div class="panel-header">
+        <h2>副露</h2>
+        <button id="btn-add-meld" class="btn btn-primary">➕ 添加副露</button>
+      </div>
+      <div id="open-melds" class="melds"></div>
+      <div id="meld-form" class="meld-form hidden">
+        <div class="form-row">
+          <label>类型</label>
+          <select id="meld-type">
+            <option value="pong">碰</option>
+            <option value="kong">杠</option>
+            <option value="chi">吃</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>花色</label>
+          <select id="meld-suit">
+            <option value="wan">万</option>
+            <option value="tong">筒</option>
+            <option value="tiao">条</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>起始牌</label>
+          <select id="meld-start"></select>
+        </div>
+        <div class="form-row form-actions">
+          <button id="btn-save-meld" class="btn btn-primary">保存副露</button>
+          <button id="btn-cancel-meld" class="btn btn-outline">取消</button>
+        </div>
+        <p id="meld-error" class="status status-error"></p>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-header">
+        <h2>听牌结果</h2>
+      </div>
+      <div id="results" class="results"></div>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <p>规则范围：仅万/筒/条；支持普通胡与七对胡；副露仅碰/杠/吃。</p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
